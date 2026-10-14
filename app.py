@@ -6,12 +6,11 @@ import gradio as gr
 # Local ya relative paths use karein taake cloud ya local par error na aaye
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "churn_model.joblib")
-THRESHOLD_PATH = os.path.join(BASE_DIR, "threshold.txt")
 
 model = joblib.load(MODEL_PATH)
 
-with open(THRESHOLD_PATH, "r") as f:
-    FINAL_THRESHOLD = float(f.read().strip())
+# Threshold file ki zaroorat nahi, seedha value set kar di hai
+FINAL_THRESHOLD = 0.5
 
 FEATURES = [
     "gender", "SeniorCitizen", "Partner", "Dependents",
@@ -203,4 +202,5 @@ with gr.Blocks(title="ChurnGuard") as demo:
         )
 
 if __name__ == "__main__":
-    demo.launch()
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port)

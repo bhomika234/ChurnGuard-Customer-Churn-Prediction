@@ -1,5 +1,5 @@
 
-%%writefile /content/app.py
+
 import os
 import joblib
 import pandas as pd

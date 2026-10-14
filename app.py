@@ -1,13 +1,12 @@
-
-
 import os
 import joblib
 import pandas as pd
 import gradio as gr
 
-# Load the final model saved in Google Colab
-MODEL_PATH = "/content/churnguard_artifacts/churn_model.joblib"
-THRESHOLD_PATH = "/content/churnguard_artifacts/threshold.txt"
+# Local ya relative paths use karein taake cloud ya local par error na aaye
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "churn_model.joblib")
+THRESHOLD_PATH = os.path.join(BASE_DIR, "threshold.txt")
 
 model = joblib.load(MODEL_PATH)
 
@@ -204,5 +203,4 @@ with gr.Blocks(title="ChurnGuard") as demo:
         )
 
 if __name__ == "__main__":
-    demo.launch(share=True)
-
+    demo.launch()

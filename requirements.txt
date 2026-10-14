@@ -1,5 +1,6 @@
-
+streamlit
 gradio
+joblib
 pandas
 scikit-learn
-joblib
+numpy

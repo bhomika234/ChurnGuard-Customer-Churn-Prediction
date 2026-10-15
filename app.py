@@ -3,23 +3,41 @@ import joblib
 import pandas as pd
 import gradio as gr
 
-# Local ya relative paths use karein taake cloud ya local par error na aaye
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "churn_model.joblib")
 
-model = joblib.load(MODEL_PATH)
+# Load the saved model artifact
+artifact = joblib.load(MODEL_PATH)
 
-# Threshold file ki zaroorat nahi, seedha value set kar di hai
-FINAL_THRESHOLD = 0.5
+# Support either a saved dictionary or a direct model
+if isinstance(artifact, dict):
+    model = artifact.get("model")
+    FINAL_THRESHOLD = artifact.get("threshold", 0.5)
+    FEATURES = artifact.get("feature_columns", [
+        "gender", "SeniorCitizen", "Partner", "Dependents",
+        "tenure", "PhoneService", "MultipleLines",
+        "InternetService", "OnlineSecurity", "OnlineBackup",
+        "DeviceProtection", "TechSupport", "StreamingTV",
+        "StreamingMovies", "Contract", "PaperlessBilling",
+        "PaymentMethod", "MonthlyCharges", "TotalCharges"
+    ])
+else:
+    model = artifact
+    FINAL_THRESHOLD = 0.5
+    FEATURES = [
+        "gender", "SeniorCitizen", "Partner", "Dependents",
+        "tenure", "PhoneService", "MultipleLines",
+        "InternetService", "OnlineSecurity", "OnlineBackup",
+        "DeviceProtection", "TechSupport", "StreamingTV",
+        "StreamingMovies", "Contract", "PaperlessBilling",
+        "PaymentMethod", "MonthlyCharges", "TotalCharges"
+    ]
 
-FEATURES = [
-    "gender", "SeniorCitizen", "Partner", "Dependents",
-    "tenure", "PhoneService", "MultipleLines",
-    "InternetService", "OnlineSecurity", "OnlineBackup",
-    "DeviceProtection", "TechSupport", "StreamingTV",
-    "StreamingMovies", "Contract", "PaperlessBilling",
-    "PaymentMethod", "MonthlyCharges", "TotalCharges"
-]
+if model is None:
+    raise ValueError(
+        "No model found in churn_model.joblib. "
+        "Check train.py and retrain the model."
+    )
 
 
 def predict_customer(
@@ -51,6 +69,7 @@ def predict_customer(
             "TotalCharges": float(total)
         }])
 
+        customer = customer[FEATURES]
         probability = float(model.predict_proba(customer)[0, 1])
 
         prediction = (
@@ -92,8 +111,7 @@ def predict_csv(file):
         results = df.copy()
         results["ChurnProbability"] = probabilities
         results["Prediction"] = [
-            "Likely to Churn"
-            if p >= FINAL_THRESHOLD
+            "Likely to Churn" if p >= FINAL_THRESHOLD
             else "Likely to Stay"
             for p in probabilities
         ]
@@ -111,8 +129,7 @@ with gr.Blocks(title="ChurnGuard") as demo:
         "Customer churn prediction and retention support tool."
     )
     gr.Markdown(
-        f"**Final decision threshold:** {FINAL_THRESHOLD:.2f} "
-        "(selected using validation data)"
+        f"**Decision threshold:** {FINAL_THRESHOLD:.2f}"
     )
 
     with gr.Tab("Single Customer"):
@@ -185,7 +202,7 @@ with gr.Blocks(title="ChurnGuard") as demo:
 
     with gr.Tab("CSV Upload"):
         gr.Markdown(
-            "Upload a CSV containing all 19 required customer features."
+            "Upload a CSV containing all required customer features."
         )
         csv_input = gr.File(
             label="Upload customer CSV",

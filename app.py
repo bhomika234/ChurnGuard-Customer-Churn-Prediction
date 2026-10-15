@@ -6,37 +6,37 @@ import gradio as gr
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODEL_PATH = os.path.join(BASE_DIR, "churn_model.joblib")
 
-# Load the saved model artifact
+FEATURES_DEFAULT = [
+    "gender", "SeniorCitizen", "Partner", "Dependents",
+    "tenure", "PhoneService", "MultipleLines",
+    "InternetService", "OnlineSecurity", "OnlineBackup",
+    "DeviceProtection", "TechSupport", "StreamingTV",
+    "StreamingMovies", "Contract", "PaperlessBilling",
+    "PaymentMethod", "MonthlyCharges", "TotalCharges"
+]
+
+# Load the trained model safely
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(
+        "churn_model.joblib was not found. "
+        "Please add the trained model file to the repository."
+    )
+
 artifact = joblib.load(MODEL_PATH)
 
-# Support either a saved dictionary or a direct model
 if isinstance(artifact, dict):
     model = artifact.get("model")
-    FINAL_THRESHOLD = artifact.get("threshold", 0.5)
-    FEATURES = artifact.get("feature_columns", [
-        "gender", "SeniorCitizen", "Partner", "Dependents",
-        "tenure", "PhoneService", "MultipleLines",
-        "InternetService", "OnlineSecurity", "OnlineBackup",
-        "DeviceProtection", "TechSupport", "StreamingTV",
-        "StreamingMovies", "Contract", "PaperlessBilling",
-        "PaymentMethod", "MonthlyCharges", "TotalCharges"
-    ])
+    FINAL_THRESHOLD = float(artifact.get("threshold", 0.5))
+    FEATURES = artifact.get("feature_columns", FEATURES_DEFAULT)
 else:
     model = artifact
     FINAL_THRESHOLD = 0.5
-    FEATURES = [
-        "gender", "SeniorCitizen", "Partner", "Dependents",
-        "tenure", "PhoneService", "MultipleLines",
-        "InternetService", "OnlineSecurity", "OnlineBackup",
-        "DeviceProtection", "TechSupport", "StreamingTV",
-        "StreamingMovies", "Contract", "PaperlessBilling",
-        "PaymentMethod", "MonthlyCharges", "TotalCharges"
-    ]
+    FEATURES = FEATURES_DEFAULT
 
 if model is None:
     raise ValueError(
         "No model found in churn_model.joblib. "
-        "Check train.py and retrain the model."
+        "Please check your model training code."
     )
 
 
@@ -134,12 +134,18 @@ with gr.Blocks(title="ChurnGuard") as demo:
 
     with gr.Tab("Single Customer"):
         inputs = [
-            gr.Dropdown(["Female", "Male"], label="Gender", value="Female"),
+            gr.Dropdown(
+                ["Female", "Male"], label="Gender", value="Female"
+            ),
             gr.Dropdown([0, 1], label="Senior Citizen", value=0),
             gr.Dropdown(["Yes", "No"], label="Partner", value="Yes"),
             gr.Dropdown(["Yes", "No"], label="Dependents", value="No"),
-            gr.Slider(0, 72, value=12, step=1, label="Tenure (months)"),
-            gr.Dropdown(["Yes", "No"], label="Phone Service", value="Yes"),
+            gr.Slider(
+                0, 72, value=12, step=1, label="Tenure (months)"
+            ),
+            gr.Dropdown(
+                ["Yes", "No"], label="Phone Service", value="Yes"
+            ),
             gr.Dropdown(
                 ["No phone service", "No", "Yes"],
                 label="Multiple Lines", value="No"
@@ -177,7 +183,8 @@ with gr.Blocks(title="ChurnGuard") as demo:
                 label="Contract", value="Month-to-month"
             ),
             gr.Dropdown(
-                ["Yes", "No"], label="Paperless Billing", value="Yes"
+                ["Yes", "No"],
+                label="Paperless Billing", value="Yes"
             ),
             gr.Dropdown(
                 [
@@ -218,6 +225,7 @@ with gr.Blocks(title="ChurnGuard") as demo:
             outputs=csv_output
         )
 
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 7860))
+    port = int(os.environ.get("PORT", "7860"))
     demo.launch(server_name="0.0.0.0", server_port=port)
